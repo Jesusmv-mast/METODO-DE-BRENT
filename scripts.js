@@ -1,6 +1,6 @@
 // Función principal del método de Brent
 function brentMethod(f, xb, options = {}) {
-    // Configuración de parámetros
+    // Toma las tolerancias que mandó el usuario o usa valores por defecto
     const xtol = options.xtol || 1e-10;
     const ytol = options.ytol || 1e-8;
     const tol = options.tol; // opcional, tolerancia unificada absoluta
@@ -22,7 +22,7 @@ function brentMethod(f, xb, options = {}) {
         [a, b] = [b, a];
         [fa, fb] = [fb, fa];
     }
-
+    // Prepara las variables que va a ir usando/guardando en cada vuelta del cálculo (para después mostrar la bitácora y la tabla de iteraciones)
 	let c = a;
 	let fc = fa;
 	let d = c;
@@ -32,11 +32,12 @@ function brentMethod(f, xb, options = {}) {
 	let iter = 0;
 	let history = [];
 	let errors = [];
-
+    // empieza el bucle de iteraciones
     while (iter < maxIter) {
         iter++;
 
-        // Tolerancia efectiva en x combinando xtol, tol y rtol
+        // En cada vuelta revisa si ya llego, si el intervalo se volvió chico o si f(b) ya es cercano a cero
+        // y devuelve el resultado como exitoso.
         const effectiveXtol = Math.max(
             xtol || 0,
             (typeof tol === 'number' && !isNaN(tol)) ? tol : 0,
@@ -72,7 +73,7 @@ function brentMethod(f, xb, options = {}) {
 				(c * fa * fb) / ((fc - fa) * (fc - fb));
 			methodUsed = 'ICI';
 		} else {
-			// Método de la secante (propuesta)
+			// Método de la secante (propuesta) 
 			// Proteger contra división por cero
 			if (fb === fa) {
 				s = (a + b) / 2;
@@ -121,7 +122,7 @@ function brentMethod(f, xb, options = {}) {
 			error_fx: errorFx
 		});
 		errors.push({ iteration: iter, error_interval: errorInterval, error_fx: errorFx });
-
+        // Decide si el nuevo punto reemplaza a a o b y reordena para que |f(b)| <= |f(a)|  
         if (fa * fs < 0) {
             b = s;
             fb = fs;
@@ -148,7 +149,7 @@ function brentMethod(f, xb, options = {}) {
     };
 }
 
-// Función para parsear la función ingresada por el usuario
+// Función para parsear la función ingresada por el usuario (convertir el texto en función evaluable)
 function parseFunction(input) {
     try {
         // Reemplazar ^ con ** para exponentes
@@ -165,6 +166,31 @@ function parseFunction(input) {
     } catch (e) {
         return null;
     }
+}
+
+// Formatea un número de forma "inteligente":
+// - Si es razonablemente normal (ni muy grande ni muy chico), lo muestra como decimal, sin ceros sobrantes.
+// - Si es muy grande, muy chico (o cero no entra acá), usa notación científica.
+function formatSmart(value, decimals = 6) {
+    if (value === null || value === undefined || isNaN(value)) return '-';
+    if (value === 0) return (0).toFixed(decimals);
+
+    const absValue = Math.abs(value);
+
+    // Rango "cómodo" para mostrar como decimal normal.
+    // Fuera de este rango, la notación científica es más clara.
+    const useDecimal = absValue >= 1e-4 && absValue < 1e9;
+
+    if (useDecimal) {
+        // Redondea a 'decimals' decimales y quita ceros sobrantes al final
+        let fixed = value.toFixed(decimals);
+        if (fixed.includes('.')) {
+            fixed = fixed.replace(/0+$/, '').replace(/\.$/, '');
+        }
+        return fixed;
+    }
+
+    return value.toExponential(decimals);
 }
 
 function displayResults(result, func, a, b) {
@@ -191,8 +217,8 @@ function displayResults(result, func, a, b) {
         // 1. Inicio de la Iteración
         logHtml += `<strong>Iteración ${iter.iteration}</strong>`;
         logHtml += `<ul>`;
-        logHtml += `<li>Intervalo: [${iter.a.toExponential(6)}, ${iter.b.toExponential(6)}]</li>`;
-        logHtml += `<li>Mejor estimación (b): ${iter.b.toExponential(6)} (f(b) = ${iter.f_b.toExponential(6)})</li>`;
+        logHtml += `<li>Intervalo: [${formatSmart(iter.a)}, ${formatSmart(iter.b)}]</li>`;
+        logHtml += `<li>Mejor estimación (b): ${formatSmart(iter.b)} (f(b) = ${formatSmart(iter.f_b)})</li>`;
 
         // 2. La Decisión del Método
         if (iter.method === 'Bisección') {
@@ -209,30 +235,30 @@ function displayResults(result, func, a, b) {
             formulaHtml = `
 <li class="log-formula">
     <details>
-        <summary>Cálculo (Bisección): <strong>s = ${iter.s.toExponential(6)}</strong></summary>
+        <summary>Cálculo (Bisección): <strong>s = ${formatSmart(iter.s)}</strong></summary>
         <div class="formula-content">Fórmula: s = (a + b) / 2
-Cálculo: s = (${iter.a.toPrecision(7)} + ${iter.b.toPrecision(7)}) / 2
-Resultado: s = ${iter.s.toExponential(6)}</div>
+Cálculo: s = (${formatSmart(iter.a, 7)} + ${formatSmart(iter.b, 7)}) / 2
+Resultado: s = ${formatSmart(iter.s)}</div>
     </details>
 </li>`;
         } else if (iter.method === 'Secante') {
             formulaHtml = `
 <li class="log-formula">
     <details>
-        <summary>Cálculo (Secante): <strong>s = ${iter.s.toExponential(6)}</strong></summary>
+        <summary>Cálculo (Secante): <strong>s = ${formatSmart(iter.s)}</strong></summary>
         <div class="formula-content">Fórmula: s = b - f(b) * (b - a) / (f(b) - f(a))
 (Cálculo numérico omitido por brevedad)
-Resultado: s = ${iter.s.toExponential(6)}</div>
+Resultado: s = ${formatSmart(iter.s)}</div>
     </details>
 </li>`;
         } else if (iter.method === 'ICI') {
             formulaHtml = `
 <li class="log-formula">
     <details>
-        <summary>Cálculo (ICI): <strong>s = ${iter.s.toExponential(6)}</strong></summary>
+        <summary>Cálculo (ICI): <strong>s = ${formatSmart(iter.s)}</strong></summary>
         <div class="formula-content">Fórmula: Interpolación Cuadrática Inversa (usando a, b, c)
 (Fórmula omitida por su gran longitud)
-Resultado: s = ${iter.s.toExponential(6)}</div>
+Resultado: s = ${formatSmart(iter.s)}</div>
     </details>
 </li>`;
         }
@@ -242,10 +268,10 @@ Resultado: s = ${iter.s.toExponential(6)}</div>
         logHtml += `
 <li class="log-formula">
     <details>
-        <summary>Evaluación: <strong>f(s) = ${iter.f_s.toExponential(6)}</strong></summary>
+        <summary>Evaluación: <strong>f(s) = ${formatSmart(iter.f_s)}</strong></summary>
         <div class="formula-content">Fórmula: f(s)
-Cálculo: f(${iter.s.toExponential(6)})
-Resultado: f(s) = ${iter.f_s.toExponential(6)}</div>
+Cálculo: f(${formatSmart(iter.s)})
+Resultado: f(s) = ${formatSmart(iter.f_s)}</div>
     </details>
 </li>`;
 
@@ -258,15 +284,15 @@ Resultado: f(s) = ${iter.f_s.toExponential(6)}</div>
     <details>
         <summary>Comprobación de Signo</summary>
         <div class="formula-content">Comprobando:  f(a) * f(s) < 0
-Cálculo:  (${iter.f_a.toExponential(3)}) * (${iter.f_s.toExponential(3)}) < 0
-Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 'FALSO'}</strong></div>
+Cálculo:  (${formatSmart(iter.f_a, 3)}) * (${formatSmart(iter.f_s, 3)}) < 0
+Resultado:  ${formatSmart(check, 3)} < 0 = <strong>${condition ? 'VERDADERO' : 'FALSO'}</strong></div>
     </details>
 </li>`;
 
         if (condition) {
-            logHtml += `<li><strong>Actualización:</strong> VERDADERO. El nuevo intervalo es [${iter.a.toExponential(6)}, ${iter.s.toExponential(6)}]. (s -> b)</li>`;
+            logHtml += `<li><strong>Actualización:</strong> VERDADERO. El nuevo intervalo es [${formatSmart(iter.a)}, ${formatSmart(iter.s)}]. (s -> b)</li>`;
         } else {
-            logHtml += `<li><strong>Actualización:</strong> FALSO. El nuevo intervalo es [${iter.s.toExponential(6)}, ${iter.b.toExponential(6)}]. (s -> a)</li>`;
+            logHtml += `<li><strong>Actualización:</strong> FALSO. El nuevo intervalo es [${formatSmart(iter.s)}, ${formatSmart(iter.b)}]. (s -> a)</li>`;
         }
 
         logHtml += `</ul></div>`;
@@ -276,7 +302,7 @@ Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 
     // --- FIN DE LA NUEVA SECCIÓN ---
 
 
-    // Resumen de métodos usados (Tu código original)
+
     const methodCounts = result.history.reduce((acc, it) => {
         const m = it.method || 'Desconocido';
         acc[m] = (acc[m] || 0) + 1;
@@ -292,23 +318,24 @@ Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 
         </div>
     `;
 
-    // Generar tabla de iteraciones (Tu código original)
+    // Generar tabla de iteraciones 
     let tableHtml = `
         <h3>Detalle de iteraciones (Datos)</h3>
-        <div class="table-container">
-            <table>
-                <tr>
-                    <th>Iteración</th>
-                    <th>a</th>
-                    <th>b</th>
-                    <th>c</th>
-                    <th>s</th>
-                    <th>f(a)</th>
-                    <th>f(b)</th>
-                    <th>f(s)</th>
-                    <th>Método</th>
-                    <th>Error</th>
-                </tr>
+        <div id="iterations-table-wrapper">
+            <div class="table-container">
+                <table id="iterations-table">
+                    <tr>
+                        <th>Iteración</th>
+                        <th>a</th>
+                        <th>b</th>
+                        <th>c</th>
+                        <th>s</th>
+                        <th>f(a)</th>
+                        <th>f(b)</th>
+                        <th>f(s)</th>
+                        <th>Método</th>
+                        <th>Error</th>
+                    </tr>
     `;
 
     result.history.forEach(iter => {
@@ -316,20 +343,21 @@ Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 
         tableHtml += `
             <tr>
                 <td>${iter.iteration}</td>
-                <td>${iter.a.toExponential(6)}</td>
-                <td>${iter.b.toExponential(6)}</td>
-                <td>${(iter.c ?? NaN).toExponential ? iter.c.toExponential(6) : '-'}</td>
-                <td>${(iter.s ?? NaN).toExponential ? iter.s.toExponential(6) : '-'}</td>
-                <td>${iter.f_a.toExponential(6)}</td>
-                <td>${iter.f_b.toExponential(6)}</td>
-                <td>${(iter.f_s !== undefined ? iter.f_s.toExponential(6) : '-')}</td>
+                <td>${formatSmart(iter.a)}</td>
+                <td>${formatSmart(iter.b)}</td>
+                <td>${formatSmart(iter.c)}</td>
+                <td>${formatSmart(iter.s)}</td>
+                <td>${formatSmart(iter.f_a)}</td>
+                <td>${formatSmart(iter.f_b)}</td>
+                <td>${formatSmart(iter.f_s)}</td>
                 <td>${iter.method || '-'}</td>
-                <td>${error.toExponential(6)}</td>
+                <td>${formatSmart(error)}</td>
             </tr>
         `;
     });
 
-    tableHtml += `</table></div>`;
+    tableHtml += `</table></div></div>`;
+    tableHtml += `<button id="download-table-btn" type="button" class="download-table-btn">Descargar tabla como imagen</button>`;
 
     // Mostrar resultados principales
     outputDiv.innerHTML = `
@@ -337,8 +365,8 @@ Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 
             <h3>Valor calculado</h3>
             <p>Función evaluada: f(x) = ${document.getElementById('function-input').value}</p>
             <p>Intervalo de búsqueda: [${a}, ${b}]</p>
-            <p>Raíz calculada: x &asymp; ${result.root.toExponential(8)}</p>
-            <p>f(x) &asymp; ${result.value.toExponential(8)}</p>
+            <p>Raíz calculada: x &asymp; ${formatSmart(result.root, 8)}</p>
+            <p>f(x) &asymp; ${formatSmart(result.value, 8)}</p>
             <p>Iteraciones: ${result.iterations}</p>
             ${result.warning ? `<p class="warning">Advertencia: ${result.warning}</p>` : ''}
         </div>
@@ -347,10 +375,59 @@ Resultado:  ${check.toExponential(3)} < 0 = <strong>${condition ? 'VERDADERO' : 
 
         ${tableHtml} `;
 
-    // Generar gráficos (Tu código original)
+    // Conectar el botón de descarga de la tabla (se crea de nuevo en cada cálculo)
+    const downloadBtn = document.getElementById('download-table-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadIterationsTableAsImage);
+    }
+
+    // Generar gráficos 
     const latest = result.history[result.history.length - 1] || null;
     generatePlot(func, a, b, result.root, latest);
     generateErrorPlot(result.errors || [], result.converged);
+}
+
+// Descarga la tabla de iteraciones como imagen PNG usando html2canvas.
+// Se captura la <table> directamente (no el div con scroll que la envuelve),
+// porque la tabla sí tiene su ancho real completo; es solo el contenedor
+// el que la recorta visualmente con overflow-x: auto.
+function downloadIterationsTableAsImage() {
+    const table = document.getElementById('iterations-table');
+    if (!table || typeof html2canvas === 'undefined') {
+        alert('No se pudo generar la imagen de la tabla. Intenta recargar la página.');
+        return;
+    }
+
+    const downloadBtn = document.getElementById('download-table-btn');
+    const originalText = downloadBtn ? downloadBtn.textContent : null;
+    if (downloadBtn) {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = 'Generando imagen...';
+    }
+
+    html2canvas(table, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        width: table.scrollWidth,
+        height: table.scrollHeight,
+        windowWidth: table.scrollWidth,
+        windowHeight: table.scrollHeight
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'tabla-iteraciones-brent.png';
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }).catch(err => {
+        console.error('Error al generar la imagen de la tabla:', err);
+        alert('Ocurrió un error al generar la imagen de la tabla.');
+    }).finally(() => {
+        if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = originalText;
+        }
+    });
 }
 
 
@@ -460,7 +537,7 @@ function generateErrorPlot(errors, converged) {
 	Plotly.newPlot('error-plot-container', [traceErr1, traceErr2], layout, {responsive: true});
 }
 
-// Evento al hacer clic en el botón de calcular
+// Evento al hacer clic en el botón de calcular######################################################################## 
 document.getElementById('calculate-btn').addEventListener('click', function() {
     try {
         // Obtener valores de entrada
