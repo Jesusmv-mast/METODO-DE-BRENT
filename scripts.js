@@ -208,7 +208,7 @@ function displayResults(result, func, a, b) {
 
 
 
-    // --- INICIO DE LA NUEVA SECCIÓN: Bitácora Explicativa ---
+    // --- Bitácora Explicativa ---
     let logHtml = `<h3>Detalle del Método Numérico</h3><div class="log-container">`;
 
     result.history.forEach(iter => {
@@ -229,7 +229,7 @@ function displayResults(result, func, a, b) {
             logHtml += `<li class="reason"><em>Razón: La conjetura fue rápida y se mantuvo dentro del intervalo.</em></li>`;
         }
 
-        // 3. El Cálculo del Nuevo Punto (CON FÓRMULAS)
+        // 3. El Cálculo del Nuevo Punto 
         let formulaHtml = '';
         if (iter.method === 'Bisección') {
             formulaHtml = `
@@ -264,7 +264,7 @@ Resultado: s = ${formatSmart(iter.s)}</div>
         }
         logHtml += formulaHtml; // Añade el bloque de fórmula
 
-        // 4. La Evaluación (CON FÓRMULA)
+        // 4. La Evaluación 
         logHtml += `
 <li class="log-formula">
     <details>
@@ -275,7 +275,7 @@ Resultado: f(s) = ${formatSmart(iter.f_s)}</div>
     </details>
 </li>`;
 
-        // 5. La Actualización del Intervalo (CON EVIDENCIA)
+        // 5. La Actualización del Intervalo 
         const check = iter.f_a * iter.f_s;
         const condition = check < 0;
 
@@ -299,7 +299,7 @@ Resultado:  ${formatSmart(check, 3)} < 0 = <strong>${condition ? 'VERDADERO' : '
     });
 
     logHtml += `</div>`;
-    // --- FIN DE LA NUEVA SECCIÓN ---
+    // --- FIN DE LA SECCIÓN ---
 
 
 
@@ -450,7 +450,7 @@ function generatePlot(func, a, b, root, latestIter) {
         y: yValues,
         mode: 'lines',
         name: 'f(x)',
-        line: {color: '#8a6d3b'}
+        line: {color: '#be0000'}
     };
 
 	// Datos para la raíz encontrada
@@ -459,7 +459,7 @@ function generatePlot(func, a, b, root, latestIter) {
         y: [0],
         mode: 'markers',
         name: 'Raíz',
-        marker: {color: '#b1483f', size: 10}
+        marker: {color: '#5ab13f', size: 10}
     };
 
 	// Marcadores para a, b, c y s (de la última iteración)
@@ -467,11 +467,11 @@ function generatePlot(func, a, b, root, latestIter) {
 	if (latestIter) {
 		markers.push({
 			x: [latestIter.a], y: [func(latestIter.a)], mode: 'markers', name: 'a',
-			marker: { color: '#c9a84c', size: 8, symbol: 'circle' }
+			marker: { color: '#e8db57', size: 8, symbol: 'circle' }
 		});
 		markers.push({
 			x: [latestIter.b], y: [func(latestIter.b)], mode: 'markers', name: 'b',
-			marker: { color: '#4f7a5c', size: 8, symbol: 'circle' }
+			marker: { color: '#17a0ad', size: 8, symbol: 'circle' }
 		});
 		if (typeof latestIter.c === 'number') {
 			markers.push({
@@ -482,7 +482,7 @@ function generatePlot(func, a, b, root, latestIter) {
 		if (typeof latestIter.s === 'number') {
 			markers.push({
 				x: [latestIter.s], y: [func(latestIter.s)], mode: 'markers', name: 's (prueba)',
-				marker: { color: '#b1483f', size: 9, symbol: 'x' }
+				marker: { color: '#d928cd', size: 9, symbol: 'x' }
 			});
 		}
 	}
